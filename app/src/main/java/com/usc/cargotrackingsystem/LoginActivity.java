@@ -60,11 +60,12 @@ public class LoginActivity extends AppCompatActivity {
 
     public boolean login(){
 
-        new AsyncTask<Void, Void, Void>(){
+        new AsyncTask<Void, Void, Driver>(){
 
             ProgressDialog dialog;
             String user, pw, resultString;
             JSONArray jsonArray = null;
+
 
             @Override
             protected void onPreExecute() {
@@ -77,7 +78,9 @@ public class LoginActivity extends AppCompatActivity {
             }
 
             @Override
-            protected Void doInBackground(Void... voids) {
+            protected Driver doInBackground(Void... voids) {
+
+                Driver driver = null;
 
                 try {
 
@@ -123,49 +126,46 @@ public class LoginActivity extends AppCompatActivity {
 
                     resultString = sb.toString();
 
+                    try {
+                        if (resultString != null) {
+
+                            JSONObject jsonObj = new JSONObject(resultString);
+
+                            jsonArray = jsonObj.getJSONArray("result");
+
+                            if(jsonArray!=null && !jsonArray.isNull(0)){
+                                JSONObject c = jsonArray.getJSONObject(0);
+
+                                driver = new Driver();
+
+                                driver.setId(c.getString(Driver.ID_TAG));
+                                driver.setFname(c.getString(Driver.FNAME_TAG));
+                                driver.setLname(c.getString(Driver.LNAME_TAG));
+                                driver.setMname(c.getString(Driver.MNAME_TAG));
+                                driver.setLicense(c.getString(Driver.LICENSE_TAG));
+                            }
+                        }
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
                 } catch(Exception e){
                     Log.e("Login", e.getMessage());
                 }
 
-                return null;
+                return driver;
             }
 
             @Override
-            protected void onPostExecute(Void aVoid) {
-                super.onPostExecute(aVoid);
-
-                Driver driver = null;
-
-                try {
-                    if (resultString != null) {
-
-                        JSONObject jsonObj = new JSONObject(resultString);
-
-                        jsonArray = jsonObj.getJSONArray("result");
-
-                        if(jsonArray!=null && !jsonArray.isNull(0)){
-                            JSONObject c = jsonArray.getJSONObject(0);
-
-                            driver = new Driver();
-
-                            driver.setId(c.getString(Driver.ID_TAG));
-                            driver.setFname(c.getString(Driver.FNAME_TAG));
-                            driver.setLname(c.getString(Driver.LNAME_TAG));
-                            driver.setMname(c.getString(Driver.MNAME_TAG));
-                            driver.setLicense(c.getString(Driver.LICENSE_TAG));
-                        }
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
+            protected void onPostExecute(Driver driver) {
+                super.onPostExecute(driver);
 
                 if(driver!=null) {
                     //driver is not null, login successful
-                    Toast.makeText(LoginActivity.this, "Login Success!: " + driver.getFname(), Toast.LENGTH_SHORT).show();
-/*                    Intent intent = new Intent(LoginActivity.this, DriverActivity.class);
-                    startActivity(intent);*/
+                    Toast.makeText(LoginActivity.this, "Login Success!", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(LoginActivity.this, DriverActivity.class);
+                    startActivity(intent);
                 }else{
                     //driver is null, login failed!
                     Toast.makeText(LoginActivity.this, "Login Failed!" , Toast.LENGTH_SHORT).show();
