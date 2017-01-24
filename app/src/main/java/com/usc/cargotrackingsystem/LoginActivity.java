@@ -162,6 +162,7 @@ public class LoginActivity extends AppCompatActivity {
                 super.onPostExecute(driver);
 
                 if(driver!=null) {
+                    GlobalData.currentDriver = driver;
                     //driver is not null, login successful
                     Toast.makeText(LoginActivity.this, "Login Success!", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(LoginActivity.this, DriverActivity.class);

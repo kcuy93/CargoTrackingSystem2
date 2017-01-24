@@ -22,36 +22,31 @@
         android:orientation="vertical"
         android:layout_alignParentTop="true"
         android:layout_toRightOf="@+id/imageView2"
-        android:layout_marginLeft="8dp"
+        android:layout_marginLeft="16dp"
+        android:layout_alignParentRight="true"
+        android:layout_alignBottom="@id/imageView2"
         android:id="@+id/linearLayout2">
 
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
             android:text="Kevin Carlo Salanga Uy"
             android:id="@+id/driver"
             android:textStyle="bold"/>
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="12345"
-            android:id="@+id/driverID"
-            android:textStyle="bold"
-            android:layout_marginTop="8dp"/>
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="5C123681"
-            android:id="@+id/truckLicense"
-            android:textStyle="bold"
-            android:layout_marginTop="8dp"/>
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="BF2412254"
-            android:id="@+id/driverLicense"
-            android:textStyle="bold"
-            android:layout_marginTop="8dp"/>
+
+        <Spinner
+            android:layout_width="150dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:id="@+id/transaction_number" />
+
+        <Spinner
+            android:layout_width="150dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:id="@+id/truck_status" />
 
     </LinearLayout>
 
@@ -78,9 +73,13 @@
             android:id="@+id/startButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Start"/>
+            android:background="@android:color/holo_green_light"
+            android:text="Start"
+            android:layout_margin="8dp"/>
         <Button
+            android:id="@+id/stopButton"
             android:layout_width="wrap_content"
+            android:background="@android:color/holo_red_light"
             android:layout_height="wrap_content"
             android:text="Stop"/>
     </LinearLayout>
