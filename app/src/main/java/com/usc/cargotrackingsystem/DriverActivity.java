@@ -24,15 +24,18 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.usc.cargotrackingsystem.POJO.Driver;
+import com.usc.cargotrackingsystem.POJO.Package;
 import com.usc.cargotrackingsystem.POJO.Transaction;
 
 import org.apache.http.HttpResponse;
@@ -57,12 +60,15 @@ import me.srodrigo.androidhintspinner.HintSpinner;
 public class DriverActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 1234;
+    public static final String OPERATION_START = "OPERATION_START";
+    public static final String OPERATION_STOP = "OPERATION_STOP";
+    public static final String OPERATION_LOG = "OPERATION_LOG";
 
     private GoogleMap mMap;
     LocationManager mLocationManager;
 
     Driver driver;
-    Transaction selectedTransaction;
+    Package selectedPackage;
 
     //refresh time for retrieving location in millis
     private final int LOCATION_REFRESH_TIME = 0;
@@ -74,7 +80,7 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
     Spinner transactionNumberSpinner, truckStatusSpinner;
     Button start, stop;
 
-    Marker m;
+    Marker destinationMarker, currentMarker;
 
     boolean startTracking;
     Location lastLocation;
@@ -104,7 +110,7 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
             @Override
             public void onClick(View view) {
                 if(lastLocation!=null)
-                    saveLocation(lastLocation);
+                    saveLocation(lastLocation, OPERATION_START);
 
                 startTracking = true;
                 start.setEnabled(false);
@@ -115,17 +121,34 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
         stop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if(lastLocation!=null)
+                    saveLocation(lastLocation, OPERATION_STOP);
                 startTracking = false;
                 start.setEnabled(true);
                 stop.setEnabled(false);
             }
         });
 
-
         if(driver!=null) {
             name.setText(driver.getFname() + " " + driver.getLname());
             getData();
         }
+
+        ArrayList<String> truckStatus = new ArrayList<>();
+        truckStatus.add("Available");
+        truckStatus.add("Unavailable");
+
+        new HintSpinner<>(
+                truckStatusSpinner,
+                // Default layout - You don't need to pass in any layout id, just your hint text and
+                // your list data
+                new HintAdapter<>(DriverActivity.this, "Truck Status", truckStatus),
+                new HintSpinner.Callback<String>() {
+                    @Override
+                    public void onItemSelected(int position, String itemAtPosition) {
+
+                    }
+                }).init();
     }
 
     private final LocationListener mLocationListener = new LocationListener() {
@@ -137,7 +160,7 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
             markLocationInMap(latLng);
 
             if(startTracking)
-                saveLocation(location);
+                saveLocation(location, OPERATION_LOG);
         }
 
         @Override
@@ -196,17 +219,54 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
         Bitmap icon =  Bitmap.createScaledBitmap(BitmapFactory.decodeResource(getResources(),
                 R.drawable.car), 74, 40, false);
 
-        if(m!=null)
-            m.remove();
+        if(currentMarker!=null)
+            currentMarker.remove();
 
-        m = mMap.addMarker(new MarkerOptions()
+        currentMarker = mMap.addMarker(new MarkerOptions()
                 .position(location)
                 .title("Current Location")
                 .icon(BitmapDescriptorFactory.fromBitmap(icon))
         );
 
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(location));
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 17.0f));
+        if(destinationMarker !=null){
+            moveCamera();
+        }else{
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(location));
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 17.0f));
+        }
+
+    }
+
+    void markDestinationInMap(LatLng location){
+
+        if(destinationMarker!=null)
+            destinationMarker.remove();
+
+        destinationMarker = mMap.addMarker(new MarkerOptions()
+                .position(location)
+                .title("Destination Location")
+        );
+
+        if(currentMarker!=null){
+            moveCamera();
+        }else{
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(location));
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 17.0f));
+        }
+    }
+
+    void moveCamera(){
+
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        //the include method will calculate the min and max bound.
+        if(currentMarker!=null)
+            builder.include(currentMarker.getPosition());
+
+        if(destinationMarker!=null)
+            builder.include(destinationMarker.getPosition());
+
+        LatLngBounds bounds = builder.build();
+        mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100));
     }
 
     @Override
@@ -236,7 +296,7 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
 
     }
 
-    public void saveLocation(final Location location){
+    public void saveLocation(final Location location, final String operationType){
         new AsyncTask<Void, Void, Void>(){
 
             String result;
@@ -260,7 +320,8 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
                 else
                     address = hostname + ":" + portNumber;
 
-                String link = "http://" + address +"/saveLocation.php?deliveryId="+ selectedTransaction.getDeliveryID()+ "&latitude="+ location.getLatitude()+"&longitude=" + location.getLongitude();
+                String link = "http://" + address +"/saveLocation.php?transactionID="+ selectedPackage.getTransactionID()+ "&latitude="+ location.getLatitude()+"&longitude=" + location.getLongitude()
+                        + "&packageID=" + selectedPackage.getPackageID()+ "&operationType=" + operationType;
 
                 result = PHPHelper.phpGet(link);
 
@@ -285,7 +346,7 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
             ProgressDialog dialog;
             JSONArray jsonArray = null;
             String result;
-            ArrayList<Transaction> transactionList;
+            ArrayList<Package> packageList;
 
             @Override
             protected void onPreExecute() {
@@ -319,18 +380,21 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
                         jsonArray = jsonObj.getJSONArray("result");
 
                         for(int i = 0; i<jsonArray.length(); i++){
-                            JSONObject c = jsonArray.getJSONObject(i);
+                            JSONObject packageJson = jsonArray.getJSONObject(i);
 
-                            Transaction transaction = new Transaction();
+                            Package packageObj = new Package();
 
-                            transaction.setId(c.getString(Transaction.ID_TAG));
-                            transaction.setStatus(c.getString(Transaction.STATUS_TAG));
-                            transaction.setDeliveryID(c.getString(Transaction.DELIVERY_ID_TAG));
+                            packageObj.setPackageID(packageJson.getString(Package.TAG_PACKAGE_ID));
+                            packageObj.setTransactionID(packageJson.getString(Package.TAG_TRANSACTION_ID));
 
-                            if(transactionList == null && !transaction.getStatus().equalsIgnoreCase("delivered"))
-                                transactionList = new ArrayList<>();
+                            JSONObject deliveryInfo = packageJson.getJSONObject("deliveryInfo");
+                            packageObj.setDestinationLatitude(deliveryInfo.getString("destLat"));
+                            packageObj.setDestinationLongitude(deliveryInfo.getString("destLong"));
 
-                            transactionList.add(transaction);
+                            if(packageList == null)
+                                packageList = new ArrayList<Package>();
+
+                            packageList.add(packageObj);
                         }
                     }
 
@@ -347,11 +411,11 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
             protected void onPostExecute(Void aVoid) {
                 super.onPostExecute(aVoid);
 
-                if(transactionList!=null){
+                if(packageList!=null){
 
                     ArrayList<String> transactionIDList = new ArrayList<>();
-                    for(Transaction transaction : transactionList){
-                        transactionIDList.add(transaction.getId());
+                    for(Package pack : packageList){
+                        transactionIDList.add(pack.getPackageID());
                     }
 
                     new HintSpinner<>(
@@ -363,24 +427,11 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
                                 @Override
                                 public void onItemSelected(int position, String itemAtPosition) {
                                     // Here you handle the on item selected event (this skips the hint selected event)
-                                    selectedTransaction = transactionList.get(position);
+                                    selectedPackage = packageList.get(position);
+
+                                    markDestinationInMap(new LatLng(Double.valueOf(selectedPackage.getDestinationLatitude()), Double.valueOf(selectedPackage.getDestinationLongitude())));
+
                                     start.setEnabled(true);
-                                }
-                            }).init();
-
-                    ArrayList<String> truckStatus = new ArrayList<>();
-                    truckStatus.add("Available");
-                    truckStatus.add("Unavailable");
-
-                    new HintSpinner<>(
-                            truckStatusSpinner,
-                            // Default layout - You don't need to pass in any layout id, just your hint text and
-                            // your list data
-                            new HintAdapter<>(DriverActivity.this, "Truck Status", truckStatus),
-                            new HintSpinner.Callback<String>() {
-                                @Override
-                                public void onItemSelected(int position, String itemAtPosition) {
-
                                 }
                             }).init();
                 }
