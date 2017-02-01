@@ -1,9 +1,5 @@
 package com.usc.cargotrackingsystem.POJO;
 
-/**
- * Created by Kevin on 1/24/2017.
- */
-
 public class Transaction {
 
 

@@ -2,6 +2,7 @@ package com.usc.cargotrackingsystem;
 
 import android.Manifest;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -14,6 +15,7 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -60,9 +62,9 @@ import me.srodrigo.androidhintspinner.HintSpinner;
 public class DriverActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 1234;
-    public static final String OPERATION_START = "OPERATION_START";
-    public static final String OPERATION_STOP = "OPERATION_STOP";
-    public static final String OPERATION_LOG = "OPERATION_LOG";
+    public static final String OPERATION_START = "START";
+    public static final String OPERATION_STOP = "STOP";
+    public static final String OPERATION_LOG = "LOG";
 
     private GoogleMap mMap;
     LocationManager mLocationManager;
@@ -84,6 +86,8 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
 
     boolean startTracking;
     Location lastLocation;
+
+    ArrayList<Package> packageList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,11 +125,33 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
         stop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(lastLocation!=null)
-                    saveLocation(lastLocation, OPERATION_STOP);
-                startTracking = false;
-                start.setEnabled(true);
-                stop.setEnabled(false);
+
+                //show confirmation dialog
+                new AlertDialog.Builder(DriverActivity.this)
+                        .setTitle("Stop Tracking")
+                        .setMessage("Do you really want to stop tracking?")
+                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                //remove destination marker
+                                destinationMarker = null;
+
+                                if(lastLocation!=null) {
+                                    saveLocation(lastLocation, OPERATION_STOP);
+                                    markLocationInMap(new LatLng(lastLocation.getLatitude(), lastLocation.getLongitude()));
+                                }else{
+                                    markCurrentLocationInMap();
+                                }
+                                startTracking = false;
+                                start.setEnabled(true);
+                                stop.setEnabled(false);
+
+                                //remove item from list
+                                packageList.remove(selectedPackage);
+                                updatePackageSpinner();
+
+                            }})
+                        .setNegativeButton(android.R.string.no, null).show();
             }
         });
 
@@ -346,7 +372,6 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
             ProgressDialog dialog;
             JSONArray jsonArray = null;
             String result;
-            ArrayList<Package> packageList;
 
             @Override
             protected void onPreExecute() {
@@ -411,34 +436,40 @@ public class DriverActivity extends AppCompatActivity implements OnMapReadyCallb
             protected void onPostExecute(Void aVoid) {
                 super.onPostExecute(aVoid);
 
-                if(packageList!=null){
-
-                    ArrayList<String> transactionIDList = new ArrayList<>();
-                    for(Package pack : packageList){
-                        transactionIDList.add(pack.getPackageID());
-                    }
-
-                    new HintSpinner<>(
-                            transactionNumberSpinner,
-                            // Default layout - You don't need to pass in any layout id, just your hint text and
-                            // your list data
-                            new HintAdapter<>(DriverActivity.this, "Select Transaction", transactionIDList),
-                            new HintSpinner.Callback<String>() {
-                                @Override
-                                public void onItemSelected(int position, String itemAtPosition) {
-                                    // Here you handle the on item selected event (this skips the hint selected event)
-                                    selectedPackage = packageList.get(position);
-
-                                    markDestinationInMap(new LatLng(Double.valueOf(selectedPackage.getDestinationLatitude()), Double.valueOf(selectedPackage.getDestinationLongitude())));
-
-                                    start.setEnabled(true);
-                                }
-                            }).init();
-                }
+                updatePackageSpinner();
 
                 if(dialog!=null)
                     dialog.dismiss();
             }
         }.execute();
+    }
+
+    public void updatePackageSpinner(){
+
+        if(packageList!=null){
+            ArrayList<String> transactionIDList = new ArrayList<>();
+            for(Package pack : packageList){
+                transactionIDList.add(pack.getPackageID());
+            }
+
+            new HintSpinner<>(
+                    transactionNumberSpinner,
+                    // Default layout - You don't need to pass in any layout id, just your hint text and
+                    // your list data
+                    new HintAdapter<>(DriverActivity.this, "Select Package", transactionIDList),
+                    new HintSpinner.Callback<String>() {
+                        @Override
+                        public void onItemSelected(int position, String itemAtPosition) {
+                            // Here you handle the on item selected event (this skips the hint selected event)
+                            selectedPackage = packageList.get(position);
+
+                            markDestinationInMap(new LatLng(Double.valueOf(selectedPackage.getDestinationLatitude()), Double.valueOf(selectedPackage.getDestinationLongitude())));
+
+                            start.setEnabled(true);
+                            stop.setEnabled(false);
+                        }
+                    }).init();
+        }
+
     }
 }

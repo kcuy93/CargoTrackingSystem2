@@ -8,11 +8,11 @@
 		echo "Failed to connect to MySQL: " . mysqli_connect_error();
 	}
 
-/*	$username = $_POST['username'];
-	$password = $_POST['password'];*/
+	$username = $_POST['username'];
+	$password = $_POST['password'];
 
-	$username = "john";
-	$password = "doedoedoe";
+/*	$username = "john";
+	$password = "doe";*/
 
 	$sql = "SELECT * FROM driver_info where driver_username ='$username' and driver_password='$password'";
     $res = mysqli_query($con,$sql);

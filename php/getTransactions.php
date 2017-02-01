@@ -8,12 +8,13 @@
 		echo "Failed to connect to MySQL: " . mysqli_connect_error();
 	}
 
-	$driver_id = $_GET['driverId'];
-/*	$driver_id = "5";*/
+	/*$driver_id = $_GET['driverId'];*/
+	$driver_id = "5";
 
 	$sql = "SELECT * FROM transaction 
 		where driver_ID ='$driver_id'
-		AND upper(transaction_status) = upper('new')";
+		AND upper(transaction_status) = upper('new')
+		OR upper(transaction_status) = upper('IN PROGRESS')";
 
     $res = mysqli_query($con,$sql);
     //$row = mysqli_fetch_array($res,MYSQLI_ASSOC);
@@ -24,9 +25,12 @@
 	$contID = $row['container_ID'];
 
 	$sql = "SELECT * FROM package 
-					WHERE container_number = '$contID'";
+					WHERE container_number = '$contID'
+					AND lower(package_status) != lower('DELIVERED')";
 
-		$res = mysqli_query($con,$sql);
+	$res = mysqli_query($con,$sql);
+
+	$package = array();
 
     while($row = mysqli_fetch_array($res)){
 
@@ -39,9 +43,7 @@
 			'destLong'=>$deliveryInfo['destination_longitude'],
 			'destLat'=>$deliveryInfo['destination_latitude']
 			);
-
-		$package = array();
-
+		
 		array_push($package,
 		array(
 			'transactionID' => $transactionID,
@@ -53,13 +55,9 @@
 			'deliveryID'=>$row[5],
 			'deliveryInfo'=> $deliveryInfo
 		));
-
-		echo json_encode(array("result"=>$package));  
 	}
-		
-    
 
-	
+	echo json_encode(array("result"=>$package));  
 
 	mysqli_close($con);
 ?>

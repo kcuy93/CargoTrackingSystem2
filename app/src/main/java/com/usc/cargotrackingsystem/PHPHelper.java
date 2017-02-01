@@ -1,19 +1,10 @@
 package com.usc.cargotrackingsystem;
 
-import android.app.Activity;
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-
-/**
- * Created by Kevin on 1/24/2017.
- */
 
 public class PHPHelper {
 

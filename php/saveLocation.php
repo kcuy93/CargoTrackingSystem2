@@ -18,17 +18,17 @@
 		echo "Failed to connect to MySQL: " . mysqli_connect_error();
 	}
 
-	$transactionID = "39";
+/*	$transactionID = "39";
 	$packageID = "23";
 	$operationType =  "STOP"; //if start or stop delivery
 	$latitude = "1555";
-	$longitude = "1555";
+	$longitude = "1555";*/
 
-/*	$transactionID = $_GET['transactionID'];
+	$transactionID = $_GET['transactionID'];
 	$packageID = $_GET['packageID'];
 	$operationType =  $_GET['operationType']; //if start or stop delivery
 	$latitude = $_GET['latitude'];
-	$longitude = $_GET['longitude'];*/
+	$longitude = $_GET['longitude'];
 
 
 	//get transaction 
@@ -52,13 +52,15 @@
 			WHERE delivery_ID ='$deliveryID'";	
 		mysqli_query($con, $sql);
 
-/*		//change status of transaction
+		//change status of transaction
     	$sql = "UPDATE transaction 
 				SET transaction_status = '$progress'
 				WHERE transaction_ID ='$transactionID'";
-    	mysqli_query($con,$sql);*/
+    	mysqli_query($con,$sql);
 
     }else if($operationType == OPERATION_STOP){
+echo "here";
+
     	//set stop travel time and delivery status
     	$sql = "UPDATE delivery_info 
      		SET stop_travel = '$date', delivery_status = '$delivered'
@@ -89,16 +91,14 @@
 						AND package_status != '$delivered'";
 
 		//if query is zero, so all packages have been delivered, change status of transaction to completed
-		$status = $progress;
 		if(mysqli_num_rows(mysqli_query($con,$sql)) == 0){
 			//change status of transaction
 	    	$status = $completed;
-		} 
-
-		$sql = "UPDATE transaction 
+	    	$sql = "UPDATE transaction 
 					SET transaction_status = '$status'
 					WHERE transaction_ID ='$transactionID'";
-	    mysqli_query($con,$sql);
+	    	mysqli_query($con,$sql);
+		} 
     }
 
 	//set lat lang
@@ -113,7 +113,5 @@
 			WHERE delivery_code = '$deliveryCode'";
 
 	mysqli_query($con, $sql);
-	 
-
 	mysqli_close($con);
 ?>
