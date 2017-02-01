@@ -59,7 +59,6 @@
     	mysqli_query($con,$sql);
 
     }else if($operationType == OPERATION_STOP){
-echo "here";
 
     	//set stop travel time and delivery status
     	$sql = "UPDATE delivery_info 
